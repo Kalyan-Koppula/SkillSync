@@ -1,0 +1,53 @@
+/* General styling for the custom node */
+.custom-node {
+  border: 2px solid #555;
+  border-radius: 5px;
+  background-color: #fff;
+  position: relative; 
+  min-width: 120px;
+  min-height: 40px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: border-color 0.2s ease-in-out;
+}
+
+/* Style for when the node is selected */
+.custom-node.selected {
+  border-color: #007bff; 
+}
+
+/* --- FINAL HANDLE STYLES (NO TRANSFORM) --- */
+
+/* Base style for all handles */
+.custom-node .handle {
+  /* Use a clear, even number for easy math */
+  width: 10px; 
+  height: 10px;
+  background-color: #007bff;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  opacity: 0; 
+  transition: opacity 0.2s ease-in-out;
+  z-index: 10;
+  /* CRITICAL: We are no longer using the transform property for positioning */
+}
+
+/* Handles appear on node hover OR when the node is selected */
+.custom-node:hover .handle,
+.custom-node.selected .handle {
+  opacity: 1;
+}
+
+/* Custom button for adding a node */
+.add-node-button {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  padding: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.add-node-button:hover {
+  background-color: #f0f0f0;
+}
