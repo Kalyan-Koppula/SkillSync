@@ -20,8 +20,7 @@ const initialNodes = [];
 const initialEdges = [];
 
 const isValidConnection = () => true;
-let id = 1;
-const getId = () => `${id++}`;
+// We are removing the simple, flawed counter from here.
 
 function Canvas() {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -29,11 +28,10 @@ function Canvas() {
   const reactFlowInstance = useReactFlow();
   const reactFlowWrapper = useRef(null);
   const viewport = useViewport();
+  const clipboard = useRef(null);
 
-
-  // --- 1. COPY/PASTE LOGIC ---
-  const clipboard = useRef(null); // Ref to store the copied nodes
-  // 1. Function to update a node's label in the state
+  const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
+  
   const updateNodeLabel = useCallback((nodeId, newLabel) => {
     setNodes((nds) =>
       nds.map((node) => {
@@ -45,16 +43,12 @@ function Canvas() {
     );
   }, [setNodes]);
 
-  // This effect ensures all nodes have the update function, even initial ones
   useEffect(() => {
     setNodes((nds) => 
-      nds.map(node => ({
-        ...node,
-        data: { ...node.data, updateNodeLabel }
-      }))
+      nds.map(node => ({ ...node, data: { ...node.data, updateNodeLabel } }))
     );
-  }, [updateNodeLabel, setNodes]);
-  // 2. Upgraded onCopy function
+  }, [nodes.length, setNodes, updateNodeLabel]);
+
   const onCopy = useCallback(() => {
     const selectedNodes = reactFlowInstance.getNodes().filter((node) => node.selected);
     if (selectedNodes.length > 0) {
@@ -65,15 +59,20 @@ function Canvas() {
       clipboard.current = { nodes: selectedNodes, edges: internalEdges };
     }
   }, [reactFlowInstance]);
-
-  // 3. Upgraded onPaste function
+  
+  // --- FIX: Upgraded onPaste with Robust ID Generation ---
   const onPaste = useCallback(() => {
     if (!clipboard.current) return;
+
+    // 1. Find the highest existing node ID to ensure new IDs are unique
+    const maxId = nodes.reduce((max, node) => Math.max(max, parseInt(node.id, 10) || 0), 0);
+    let nextId = maxId + 1;
+
     const { nodes: copiedNodes, edges: copiedEdges } = clipboard.current;
     const idMapping = new Map();
 
     const newNodes = copiedNodes.map((node) => {
-      const newId = getId();
+      const newId = `${nextId++}`; // Use our safe, incrementing counter
       idMapping.set(node.id, newId);
       return {
         ...node,
@@ -85,17 +84,23 @@ function Canvas() {
     });
 
     const newEdges = copiedEdges.map((edge) => {
+      const newSource = idMapping.get(edge.source);
+      const newTarget = idMapping.get(edge.target);
       return {
         ...edge,
-        id: `e${idMapping.get(edge.source)}-${idMapping.get(edge.target)}`,
-        source: idMapping.get(edge.source),
-        target: idMapping.get(edge.target),
+        // Also give the new edge a unique ID
+        id: `e${newSource}-${newTarget}-${nextId++}`,
+        source: newSource,
+        target: newTarget,
       };
     });
-
-    setNodes((nds) => [...nds, ...newNodes]);
+        // FIX: Deselect all current nodes before adding the new, selected ones
+    setNodes((currentNodes) => {
+      const deselectedNodes = currentNodes.map(node => ({ ...node, selected: false }));
+      return [...deselectedNodes, ...newNodes];
+    });
     setEdges((eds) => [...eds, ...newEdges]);
-  }, [setNodes, setEdges, updateNodeLabel]);
+  }, [nodes, setNodes, setEdges, updateNodeLabel]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -108,35 +113,33 @@ function Canvas() {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onCopy, onPaste]);
 
-
-  const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
-
   const onConnect = useCallback((params) => {
-    // Create the new edge with the markerEnd property
     const newEdge = { ...params, markerEnd: { type: MarkerType.ArrowClosed } };
     setEdges((eds) => addEdge(newEdge, eds));
   }, [setEdges]);
-
+  
+  // --- FIX: Upgraded onAddNode with Robust ID Generation ---
   const onAddNode = useCallback(() => {
-    if (!reactFlowWrapper.current) {
-      return;
-    }
-    const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+    if (!reactFlowWrapper.current) return;
 
-    // Manually calculate the position in the flow plane
+    // Find the highest existing node ID to ensure the new node is unique
+    const maxId = nodes.reduce((max, node) => Math.max(max, parseInt(node.id, 10) || 0), 0);
+    const newId = `${maxId + 1}`;
+
+    const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
     const position = {
       x: (reactFlowBounds.width / 2 - viewport.x) / viewport.zoom,
       y: (reactFlowBounds.height / 2 - viewport.y) / viewport.zoom,
     };
     
     const newNode = {
-      id: getId(),
+      id: newId,
       type: 'custom',
       position,
       data: { label: 'New Node', updateNodeLabel },
     };
     setNodes((nds) => nds.concat(newNode));
-  }, [viewport, setNodes]); // The dependency is now the viewport
+  }, [nodes, viewport, setNodes, updateNodeLabel]);
 
   return (
     <div style={{ width: '100vw', height: '100vh' }} ref={reactFlowWrapper}>
