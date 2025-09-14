@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   ReactFlow,
   useNodesState,
@@ -7,12 +7,13 @@ import {
   Controls,
   Background,
   useViewport,
-  ConnectionMode
+  ConnectionMode,
+  useReactFlow,
 } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
 
 import CustomNode from './CustomNode';
 import './styles.css';
+import '@xyflow/react/dist/style.css';
 
 const initialNodes = [
   { id: '1', type: 'custom', data: { label: 'Main Idea (Source)' }, position: { x: 250, y: 5 } },
@@ -27,12 +28,66 @@ let id = 3;
 const getId = () => `${id++}`;
 
 function Canvas() {
-  const reactFlowWrapper = useRef(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-  
-  // Get the current viewport state { x, y, zoom }
+  const reactFlowInstance = useReactFlow();
+  const reactFlowWrapper = useRef(null);
   const viewport = useViewport();
+
+
+  // --- 1. COPY/PASTE LOGIC ---
+  const clipboard = useRef(null); // Ref to store the copied nodes
+
+  const onCopy = useCallback(() => {
+    const selectedNodes = reactFlowInstance.getNodes().filter((node) => node.selected);
+    if (selectedNodes.length > 0) {
+      clipboard.current = selectedNodes;
+      alert(`Copied ${selectedNodes.length} node(s)`);
+    }
+  }, [reactFlowInstance]);
+
+  const onPaste = useCallback(() => {
+    if (!clipboard.current || clipboard.current.length === 0) {
+      return;
+    }
+    
+    const newNodes = clipboard.current.map((node) => {
+      const newNode = {
+        ...node,
+        id: getId(), // Generate a new unique ID
+        selected: true, // Make the pasted node selected
+        position: {   // Offset the position to avoid direct overlap
+          x: node.position.x + 20,
+          y: node.position.y + 20,
+        },
+      };
+      return newNode;
+    });
+
+    // Add the new nodes to the existing ones
+    setNodes((currentNodes) => [...currentNodes, ...newNodes]);
+  }, [setNodes]);
+  
+  // --- 2. KEYBOARD SHORTCUTS ---
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const isCtrlOrCmd = isMac ? event.metaKey : event.ctrlKey;
+
+      if (isCtrlOrCmd && event.key === 'c') {
+        event.preventDefault();
+        onCopy();
+      }
+      if (isCtrlOrCmd && event.key === 'v') {
+        event.preventDefault();
+        onPaste();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onCopy, onPaste]);
+
 
   const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
   const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
@@ -58,7 +113,7 @@ function Canvas() {
     setNodes((nds) => nds.concat(newNode));
   }, [viewport, setNodes]); // The dependency is now the viewport
 
-return (
+  return (
     <div style={{ width: '100vw', height: '100vh' }} ref={reactFlowWrapper}>
       <ReactFlow
         nodes={nodes}
@@ -72,22 +127,18 @@ return (
         isValidConnection={()=>true}
       >
         <Controls>
-          {/* Button no longer needs to be disabled */}
-          <button 
-            onClick={onAddNode} 
-            className="add-node-button" 
-            title="Add Node"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
-            </svg>
-          </button>
+          {/* Add the Copy and Paste buttons */}
+          <button onClick={onAddNode} className="add-node-button" title="Add Node">+</button>
+          <button onClick={onCopy} title="Copy (Ctrl+C)">📋</button>
+          <button onClick={onPaste} title="Paste (Ctrl+V)">📄</button>
         </Controls>
         <Background variant="dots" gap={12} size={1} />
       </ReactFlow>
     </div>
   );
 }
+
+// NOTE: You need to wrap your <Canvas /> component in <ReactFlowProvider> in your main App.js or equivalent file
+// for useReactFlow() to work. Your repo already does this, which is great.
 
 export default Canvas;

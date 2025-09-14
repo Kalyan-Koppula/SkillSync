@@ -51,3 +51,20 @@
 .add-node-button:hover {
   background-color: #f0f0f0;
 }
+
+/* Make all control buttons look consistent */
+.react-flow__controls-button {
+  background-color: #fff;
+  border: 1px solid #ddd;
+  padding: 8px;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.react-flow__controls-button:hover {
+  background-color: #f0f0f0;
+}
