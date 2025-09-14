@@ -20,7 +20,7 @@ const initialNodes = [
 ];
 
 const initialEdges = [
-  { id: 'e1-2', source: '1', target: '2', sourceHandle: '1-bottom', targetHandle: '2-top' },
+  { id: 'e1-2', source: '1', target: '2', sourceHandle: 'bottom', targetHandle: 'top' },
 ];
 
 let id = 3;
@@ -69,6 +69,7 @@ return (
         nodeTypes={nodeTypes}
         fitView
         connectionMode={ConnectionMode.Loose}
+        isValidConnection={()=>true}
       >
         <Controls>
           {/* Button no longer needs to be disabled */}
