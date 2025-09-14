@@ -9,20 +9,23 @@ import {
   useViewport,
   ConnectionMode,
   useReactFlow,
-  MarkerType
+  MarkerType,
 } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 
 import CustomNode from './CustomNode';
 import './styles.css';
-import '@xyflow/react/dist/style.css';
 
+const initialNodes = [];
+const initialEdges = [];
 
-let id = 0;
+const isValidConnection = () => true;
+let id = 1;
 const getId = () => `${id++}`;
 
 function Canvas() {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const reactFlowInstance = useReactFlow();
   const reactFlowWrapper = useRef(null);
   const viewport = useViewport();
@@ -30,52 +33,69 @@ function Canvas() {
 
   // --- 1. COPY/PASTE LOGIC ---
   const clipboard = useRef(null); // Ref to store the copied nodes
+  // 1. Function to update a node's label in the state
+  const updateNodeLabel = useCallback((nodeId, newLabel) => {
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === nodeId) {
+          return { ...node, data: { ...node.data, label: newLabel } };
+        }
+        return node;
+      })
+    );
+  }, [setNodes]);
 
+  // 2. Upgraded onCopy function
   const onCopy = useCallback(() => {
     const selectedNodes = reactFlowInstance.getNodes().filter((node) => node.selected);
     if (selectedNodes.length > 0) {
-      clipboard.current = selectedNodes;
+      const selectedNodeIds = new Set(selectedNodes.map(n => n.id));
+      const internalEdges = reactFlowInstance.getEdges().filter(
+        edge => selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)
+      );
+      clipboard.current = { nodes: selectedNodes, edges: internalEdges };
+      alert(`Copied ${selectedNodes.length} node(s) and ${internalEdges.length} edge(s)`);
     }
   }, [reactFlowInstance]);
 
+  // 3. Upgraded onPaste function
   const onPaste = useCallback(() => {
-    if (!clipboard.current || clipboard.current.length === 0) {
-      return;
-    }
-    
-    const newNodes = clipboard.current.map((node) => {
-      const newNode = {
+    if (!clipboard.current) return;
+    const { nodes: copiedNodes, edges: copiedEdges } = clipboard.current;
+    const idMapping = new Map();
+
+    const newNodes = copiedNodes.map((node) => {
+      const newId = getId();
+      idMapping.set(node.id, newId);
+      return {
         ...node,
-        id: getId(), // Generate a new unique ID
-        selected: true, // Make the pasted node selected
-        position: {   // Offset the position to avoid direct overlap
-          x: node.position.x + 20,
-          y: node.position.y + 20,
-        },
+        id: newId,
+        selected: true,
+        position: { x: node.position.x + 20, y: node.position.y + 20 },
+        data: { ...node.data, updateNodeLabel },
       };
-      return newNode;
     });
 
-    // Add the new nodes to the existing ones
-    setNodes((currentNodes) => [...currentNodes, ...newNodes]);
-  }, [setNodes]);
-  
-  // --- 2. KEYBOARD SHORTCUTS ---
+    const newEdges = copiedEdges.map((edge) => {
+      return {
+        ...edge,
+        id: `e${idMapping.get(edge.source)}-${idMapping.get(edge.target)}`,
+        source: idMapping.get(edge.source),
+        target: idMapping.get(edge.target),
+      };
+    });
+
+    setNodes((nds) => [...nds, ...newNodes]);
+    setEdges((eds) => [...eds, ...newEdges]);
+  }, [setNodes, setEdges, updateNodeLabel]);
+
   useEffect(() => {
     const handleKeyDown = (event) => {
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
       const isCtrlOrCmd = isMac ? event.metaKey : event.ctrlKey;
-
-      if (isCtrlOrCmd && event.key === 'c') {
-        event.preventDefault();
-        onCopy();
-      }
-      if (isCtrlOrCmd && event.key === 'v') {
-        event.preventDefault();
-        onPaste();
-      }
+      if (isCtrlOrCmd && event.key === 'c') { event.preventDefault(); onCopy(); }
+      if (isCtrlOrCmd && event.key === 'v') { event.preventDefault(); onPaste(); }
     };
-
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [onCopy, onPaste]);
@@ -119,12 +139,11 @@ function Canvas() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
+        isValidConnection={isValidConnection}
         fitView
         connectionMode={ConnectionMode.Loose}
-        isValidConnection={()=>true}
       >
         <Controls>
-          {/* Add the Copy and Paste buttons */}
           <button onClick={onAddNode} className="add-node-button" title="Add Node">+</button>
           <button onClick={onCopy} title="Copy (Ctrl+C)">📋</button>
           <button onClick={onPaste} title="Paste (Ctrl+V)">📄</button>
@@ -134,8 +153,5 @@ function Canvas() {
     </div>
   );
 }
-
-// NOTE: You need to wrap your <Canvas /> component in <ReactFlowProvider> in your main App.js or equivalent file
-// for useReactFlow() to work. Your repo already does this, which is great.
 
 export default Canvas;

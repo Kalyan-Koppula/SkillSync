@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Handle, Position } from '@xyflow/react';
 
-function CustomNode({ data, isConnectable, selected }) {
+// 1. Add 'id' to the props we receive from React Flow
+function CustomNode({ id, data, isConnectable, selected }) {
   const [isEditing, setIsEditing] = useState(false);
   const contentEditableRef = useRef(null);
 
@@ -13,7 +14,15 @@ function CustomNode({ data, isConnectable, selected }) {
   }, [isEditing]);
 
   const handleDoubleClick = () => setIsEditing(true);
-  const handleBlur = () => setIsEditing(false);
+
+  // 2. This function now saves the content on blur
+  const handleBlur = (event) => {
+    setIsEditing(false);
+    // Call the update function passed down from the Canvas
+    if (data.updateNodeLabel) {
+      data.updateNodeLabel(id, event.currentTarget.textContent);
+    }
+  };
 
   return (
     <div className={`custom-node ${selected ? 'selected' : ''}`} onDoubleClick={handleDoubleClick}>
@@ -27,7 +36,6 @@ function CustomNode({ data, isConnectable, selected }) {
         contentEditable={isEditing}
         suppressContentEditableWarning={true}
         onBlur={handleBlur}
-        // The "nodrag" class has been removed from this line
         style={{ padding: '10px', minWidth: '100px', minHeight: '30px' }}
       >
         {data.label}
