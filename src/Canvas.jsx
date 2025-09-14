@@ -45,6 +45,15 @@ function Canvas() {
     );
   }, [setNodes]);
 
+  // This effect ensures all nodes have the update function, even initial ones
+  useEffect(() => {
+    setNodes((nds) => 
+      nds.map(node => ({
+        ...node,
+        data: { ...node.data, updateNodeLabel }
+      }))
+    );
+  }, [updateNodeLabel, setNodes]);
   // 2. Upgraded onCopy function
   const onCopy = useCallback(() => {
     const selectedNodes = reactFlowInstance.getNodes().filter((node) => node.selected);
@@ -54,7 +63,6 @@ function Canvas() {
         edge => selectedNodeIds.has(edge.source) && selectedNodeIds.has(edge.target)
       );
       clipboard.current = { nodes: selectedNodes, edges: internalEdges };
-      alert(`Copied ${selectedNodes.length} node(s) and ${internalEdges.length} edge(s)`);
     }
   }, [reactFlowInstance]);
 
@@ -125,7 +133,7 @@ function Canvas() {
       id: getId(),
       type: 'custom',
       position,
-      data: { label: 'New Node' },
+      data: { label: 'New Node', updateNodeLabel },
     };
     setNodes((nds) => nds.concat(newNode));
   }, [viewport, setNodes]); // The dependency is now the viewport
