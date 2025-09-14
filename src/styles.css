@@ -15,11 +15,8 @@
   border-color: #007bff; 
 }
 
-/* --- FINAL HANDLE STYLES (NO TRANSFORM) --- */
-
 /* Base style for all handles */
 .custom-node .handle {
-  /* Use a clear, even number for easy math */
   width: 10px; 
   height: 10px;
   background-color: #007bff;
@@ -28,28 +25,12 @@
   opacity: 0; 
   transition: opacity 0.2s ease-in-out;
   z-index: 10;
-  /* CRITICAL: We are no longer using the transform property for positioning */
 }
 
 /* Handles appear on node hover OR when the node is selected */
 .custom-node:hover .handle,
 .custom-node.selected .handle {
   opacity: 1;
-}
-
-/* Custom button for adding a node */
-.add-node-button {
-  background-color: #fff;
-  border: 1px solid #ddd;
-  padding: 8px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.add-node-button:hover {
-  background-color: #f0f0f0;
 }
 
 /* Make all control buttons look consistent */
@@ -67,4 +48,15 @@
 
 .react-flow__controls-button:hover {
   background-color: #f0f0f0;
+}
+
+/* --- STYLES FOR RESIZE BORDERS --- */
+.resize-line {
+  /* Make the line a bit thicker so it's easier to grab */
+  border-width: 3px;
+  border-color: transparent;
+}
+
+.react-flow__resize-control.handle {
+  opacity: 0 !important;
 }
