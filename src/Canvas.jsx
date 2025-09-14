@@ -35,7 +35,6 @@ function Canvas() {
     const selectedNodes = reactFlowInstance.getNodes().filter((node) => node.selected);
     if (selectedNodes.length > 0) {
       clipboard.current = selectedNodes;
-      alert(`Copied ${selectedNodes.length} node(s)`);
     }
   }, [reactFlowInstance]);
 
