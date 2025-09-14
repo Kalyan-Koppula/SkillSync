@@ -16,6 +16,8 @@ import "@xyflow/react/dist/style.css";
 import CustomNode from "./CustomNode";
 import "./styles.css";
 
+import mockBackendData from './mockData/graphData'
+
 const initialNodes = [];
 const initialEdges = [];
 
@@ -128,6 +130,10 @@ function Canvas() {
         event.preventDefault();
         onPaste();
       }
+      if (isCtrlOrCmd && event.key === "s") {
+        event.preventDefault();
+        onSave();
+      }
     };
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
@@ -170,6 +176,46 @@ function Canvas() {
     setNodes((nds) => nds.concat(newNode));
   }, [nodes, viewport, setNodes, updateNodeLabel]);
 
+    const onSave = useCallback(() => {
+    // Create a clean version of the nodes array for serialization
+    const nodesToSave = nodes.map(({ data, ...restOfNode }) => {
+      // Destructure to remove the non-serializable function
+      const { updateNodeLabel, ...restOfData } = data;
+      // Return the node with only the serializable data
+      return { ...restOfNode, data: restOfData };
+    });
+
+    // Create the final object to be saved
+    const flowData = {
+      nodes: nodesToSave,
+      edges: edges,
+    };
+
+    const flowDataString = JSON.stringify(flowData, null, 2);
+    console.log("Data to save to DB:", flowDataString);
+    alert("Graph data saved to the browser console!");
+
+    // In a real application, you would send this string to your backend:
+    // fetch('/api/save', { method: 'POST', body: flowDataString });
+  }, [nodes, edges]);
+
+  // --- 2. LOAD FUNCTION ---
+  useEffect(() => {
+    // This function simulates fetching data from your database
+    const loadFromDB = () => {
+      // After loading, re-attach the update function to make nodes editable
+      const nodesWithUpdater = mockBackendData.nodes.map(node => ({
+        ...node,
+        data: { ...node.data, updateNodeLabel }
+      }));
+      
+      setNodes(nodesWithUpdater);
+      setEdges(mockBackendData.edges);
+    };
+
+    loadFromDB();
+  }, [setNodes, setEdges, updateNodeLabel]);
+
   return (
     <div style={{ width: "100vw", height: "100vh" }} ref={reactFlowWrapper}>
       <ReactFlow
@@ -182,6 +228,9 @@ function Canvas() {
         isValidConnection={isValidConnection}
         fitView
         connectionMode={ConnectionMode.Loose}
+        panOnScroll
+        selectionOnDrag
+        panOnDrag={false}
       >
         <Controls>
           <button
@@ -195,17 +244,18 @@ function Canvas() {
               viewBox="0 0 24 24"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+              <g id="SVGRepo_bgCarrier" strokeWidth="0"></g>
               <g
                 id="SVGRepo_tracerCarrier"
-                stroke-linecap="round"
-                stroke-linejoin="round"
+                strokeLinecap="round"
+                strokeLinejoin="round"
               ></g>
               <g id="SVGRepo_iconCarrier">
                 <path d="M4,23H20a1,1,0,0,0,1-1V6a1,1,0,0,0-.293-.707l-4-4A1,1,0,0,0,16,1H4A1,1,0,0,0,3,2V22A1,1,0,0,0,4,23ZM5,3H15.586L19,6.414V21H5Zm11,9a1,1,0,0,1-1,1H13v2a1,1,0,0,1-2,0V13H9a1,1,0,0,1,0-2h2V9a1,1,0,0,1,2,0v2h2A1,1,0,0,1,16,12Z"></path>
               </g>
             </svg>
           </button>
+          <button onClick={onSave} title="Save">💾</button>
         </Controls>
         <Background variant="dots" gap={12} size={1} />
       </ReactFlow>
