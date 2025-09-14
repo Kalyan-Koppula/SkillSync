@@ -9,27 +9,20 @@ import {
   useViewport,
   ConnectionMode,
   useReactFlow,
+  MarkerType
 } from '@xyflow/react';
 
 import CustomNode from './CustomNode';
 import './styles.css';
 import '@xyflow/react/dist/style.css';
 
-const initialNodes = [
-  { id: '1', type: 'custom', data: { label: 'Main Idea (Source)' }, position: { x: 250, y: 5 } },
-  { id: '2', type: 'custom', data: { label: 'Sub-topic (Target)' }, position: { x: 100, y: 125 } },
-];
 
-const initialEdges = [
-  { id: 'e1-2', source: '1', target: '2', sourceHandle: 'bottom', targetHandle: 'top' },
-];
-
-let id = 3;
+let id = 0;
 const getId = () => `${id++}`;
 
 function Canvas() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const reactFlowInstance = useReactFlow();
   const reactFlowWrapper = useRef(null);
   const viewport = useViewport();
@@ -90,7 +83,12 @@ function Canvas() {
 
 
   const nodeTypes = useMemo(() => ({ custom: CustomNode }), []);
-  const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
+
+  const onConnect = useCallback((params) => {
+    // Create the new edge with the markerEnd property
+    const newEdge = { ...params, markerEnd: { type: MarkerType.ArrowClosed } };
+    setEdges((eds) => addEdge(newEdge, eds));
+  }, [setEdges]);
 
   const onAddNode = useCallback(() => {
     if (!reactFlowWrapper.current) {
