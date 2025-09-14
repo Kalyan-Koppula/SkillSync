@@ -6,8 +6,8 @@ import {
   addEdge,
   Controls,
   Background,
-  // The hook we will use instead:
   useViewport,
+  ConnectionMode
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -20,7 +20,7 @@ const initialNodes = [
 ];
 
 const initialEdges = [
-  { id: 'e1-2', source: '1', target: '2', sourceHandle: 'bottom', targetHandle: 'top' },
+  { id: 'e1-2', source: '1', target: '2', sourceHandle: '1-bottom', targetHandle: '2-top' },
 ];
 
 let id = 3;
@@ -58,7 +58,7 @@ function Canvas() {
     setNodes((nds) => nds.concat(newNode));
   }, [viewport, setNodes]); // The dependency is now the viewport
 
-  return (
+return (
     <div style={{ width: '100vw', height: '100vh' }} ref={reactFlowWrapper}>
       <ReactFlow
         nodes={nodes}
@@ -68,6 +68,7 @@ function Canvas() {
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         fitView
+        connectionMode={ConnectionMode.Loose}
       >
         <Controls>
           {/* Button no longer needs to be disabled */}

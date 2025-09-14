@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Handle, Position } from '@xyflow/react';
 
-function CustomNode({ data, isConnectable, selected }) {
+function CustomNode({ data, isConnectable, selected, id }) {
   const [isEditing, setIsEditing] = useState(false);
   const contentEditableRef = useRef(null);
 
@@ -21,10 +21,10 @@ function CustomNode({ data, isConnectable, selected }) {
       {/* We have removed the invisible hover-zone divs entirely */}
 
       {/* Handles are now simpler */}
-      <Handle type="target" position={Position.Top} id="top" isConnectable={isConnectable} className="handle" />
-      <Handle type="source" position={Position.Right} id="right" isConnectable={isConnectable} className="handle" />
-      <Handle type="source" position={Position.Bottom} id="bottom" isConnectable={isConnectable} className="handle" />
-      <Handle type="target" position={Position.Left} id="left" isConnectable={isConnectable} className="handle" />
+      <Handle type="target" position={Position.Top} id={`${id}-top`} isConnectable={isConnectable} className="handle" />
+      <Handle type="source" position={Position.Right} id={`${id}-right`} isConnectable={isConnectable} className="handle" />
+      <Handle type="source" position={Position.Bottom} id={`${id}-bottom`} isConnectable={isConnectable} className="handle" />
+      <Handle type="target" position={Position.Left} id={`${id}-left`} isConnectable={isConnectable} className="handle" />
       
       <div
         ref={contentEditableRef}
